@@ -5,7 +5,7 @@
 [![Skill Version](https://img.shields.io/badge/version-2.1.0-blue.svg)](./SKILL.md)
 [![Language](https://img.shields.io/badge/language-EN%20%7C%20ES-green.svg)](#)
 [![Python](https://img.shields.io/badge/python-3.7%2B-yellow.svg)](https://python.org)
-[![License](https://img.shields.io/badge/license-MIT-lightgrey.svg)](./LICENSE)
+[![License](https://img.shields.io/badge/license-GPLv3-blue.svg)](./LICENSE)
 
 **Choose language / Elige idioma:** [🇨🇱 Español](#-español) · [🇬🇧 English](#-english)
 
@@ -222,7 +222,7 @@ Para agregar una operación nueva:
 
 ### Licencia
 
-MIT — ver [LICENSE](./LICENSE).
+GPLv3 — ver [LICENSE](./LICENSE).
 
 ---
 
@@ -436,6 +436,6 @@ When adding a new operation:
 
 ### License
 
-MIT — see [LICENSE](./LICENSE).
+GPLv3 — see [LICENSE](./LICENSE).
 
 ---
