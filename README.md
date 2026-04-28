@@ -1,13 +1,228 @@
 # 🔧 GitHub & Git Manager — Claude Skill
 
-> Manage your Git repositories through natural conversation with Claude. *Maneja tus repositorios de Git conversando con Claude.*
+> Manage your Git repositories through natural conversation with Claude. *Administra tus repositorios de Git conversando con Claude.*
 
 [![Skill Version](https://img.shields.io/badge/version-2.1.0-blue.svg)](./SKILL.md)
 [![Language](https://img.shields.io/badge/language-EN%20%7C%20ES-green.svg)](#)
 [![Python](https://img.shields.io/badge/python-3.7%2B-yellow.svg)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey.svg)](./LICENSE)
 
-**Choose language / Elige idioma:** [🇬🇧 English](#-english) · [🇪🇸 Español](#-español)
+**Choose language / Elige idioma:** [🇨🇱 Español](#-español) · [🇬🇧 English](#-english)
+
+
+---
+
+## 🇨🇱 Español
+
+### Qué es
+
+Un Claude Skill que te permite operar repositorios de Git conversando con Claude. Entiende español e inglés, diagnostica errores comunes, y **siempre pide confirmación antes de hacer algo destructivo**.
+
+```
+Tú:     Muéstrame mis proyectos y la rama de cada uno
+Claude: ✅ Encontré 3 repositorios:
+         📁 web-app     → main           (2 archivos modificados)
+         📁 api-server  → develop        (limpio)
+         📁 mobile-app  → feature/login  (1 archivo modificado)
+
+Tú:     Resetea todos mis cambios en web-app
+Claude: ⚠️  OPERACIÓN DESTRUCTIVA
+         Comando: git reset --hard HEAD
+         Efecto:  Descarta permanentemente todos los cambios sin confirmar
+         Afecta:  src/auth/login.js, src/routes/index.js
+         Repo:    /home/tu/projects/web-app
+
+         Escribe SÍ (o YES) para confirmar. Cualquier otra cosa cancela.
+```
+
+### Características
+
+- **Lenguaje natural** — funciona en español e inglés, sin necesidad de sintaxis de comandos.
+- **Confirmación estricta** — las operaciones destructivas exigen `SÍ` o `YES` literales. "ok" / "claro" / "dale" *no* son aceptados.
+- **Lista de subcomandos permitidos** — el script rechaza `git config --global`, `filter-branch` y otros que modifican el estado global.
+- **Sin exposición de credenciales** — los tokens embebidos en URLs remotas se eliminan antes de mostrarlos.
+- **Descubrimiento automático** — busca repositorios en `~/projects`, `~/repos`, `~/code`, `~/Documents/GitHub`.
+- **Diagnóstico de errores** — explica los fallos y propone soluciones concretas.
+- **Commits convencionales** — sugiere mensajes estructurados cuando no proporcionas uno.
+
+### Requisitos
+
+- Cuenta de Claude con Skills habilitado
+- Git 2.0+
+- Python 3.7+ (para los scripts auxiliares)
+- Repositorios clonados localmente
+
+### Instalación
+
+**Opción A — Interfaz de Claude Skills**
+
+1. Abre Claude → **Settings → Skills → Add Skill**
+2. Sube o apunta al archivo `SKILL.md`
+3. Claude confirma que el skill está activo
+
+**Opción B — Manual (self-hosted / API)**
+
+```bash
+git clone https://github.com/tu-usuario/github-git-manager-skill.git
+cp -r github-git-manager-skill ~/.claude/skills/github-git-manager
+python3 ~/.claude/skills/github-git-manager/scripts/validate_setup.py
+```
+
+### Configuración inicial
+
+```bash
+python3 scripts/validate_setup.py
+```
+
+Salida esperada en un sistema correcto:
+```
+✅ Git           git version 2.43.0
+✅ Python        3.11.4
+✅ Git Identity  name: Tu Nombre / email: tu@ejemplo.com
+✅ Ssh Keys      id_ed25519.pub
+✅ Repositories  3 repositorios encontrados
+
+✅ Todo está en orden. Prueba: "Muéstrame mis repositorios"
+```
+
+### Ejemplos de uso
+
+**Inspeccionar**
+- "Muéstrame mis repositorios"
+- "¿En qué rama estoy en my-app?"
+- "¿Qué archivos he modificado?"
+- "Muéstrame los últimos 10 commits"
+
+**Ramas**
+- "Crea una rama llamada feature/dark-mode"
+- "Cambia a main"
+- "Elimina la rama feature/old-login"
+
+**Guardar trabajo**
+- "Haz commit de mis cambios con el mensaje 'feat: add dark mode'"
+- "Prepara solo los archivos CSS y haz commit"
+- "¿Cómo quedaría el mensaje de commit?" *(Claude propone uno)*
+- "Guarda en stash lo que tengo en progreso"
+
+**Sincronizar**
+- "Trae los últimos cambios"
+- "Sube mis commits"
+- "¿Qué commits tengo que no están en GitHub todavía?"
+
+**Deshacer**
+- "Deshaz el último commit (pero conserva los cambios)"
+- "Descarta mis cambios en login.js"
+- "Resetea todo" *(pide confirmación)*
+
+**Resolver problemas**
+- "Me aparece Permission denied (publickey)"
+- "Tengo un conflicto de fusión, ayúdame a resolverlo"
+- "Me rechazó el push"
+
+### Modelo de seguridad
+
+| Nivel | Ejemplos | Comportamiento |
+|-------|----------|----------------|
+| Seguro | status, log, diff, fetch, listar ramas | Se ejecuta de inmediato |
+| Moderado | switch, pull, crear rama | Avisa si hay cambios sin confirmar |
+| Destructivo | reset --hard, force push, clean -fd, branch -D, rm | Requiere `SÍ` / `YES` literal |
+| Restringido | push a `main` / `master` | Pide confirmación aunque no sea destructivo localmente |
+
+Bloque de confirmación:
+```
+⚠️  OPERACIÓN DESTRUCTIVA
+    Comando: git <comando exacto>
+    Efecto:  <qué cambia / qué se pierde>
+    Afecta:  <archivos / commits / ramas en riesgo>
+    Repo:    <ruta absoluta>
+
+    Escribe SÍ (o YES) para confirmar. Cualquier otra cosa cancela.
+```
+
+### CLI del script auxiliar
+
+`git_manager.py` también se puede usar directamente desde la terminal:
+
+```bash
+# Buscar repositorios (carpetas predeterminadas)
+python3 scripts/git_manager.py find
+
+# Buscar con carpetas personalizadas
+python3 scripts/git_manager.py find --base-dir /trabajo/clientes ~/personal
+
+# Estado
+python3 scripts/git_manager.py status ~/projects/my-app
+
+# Ejecutar un comando seguro
+python3 scripts/git_manager.py run ~/projects/my-app -- log --oneline -10
+
+# Ejecutar un comando destructivo (requiere --confirmed)
+python3 scripts/git_manager.py run ~/projects/my-app --confirmed -- reset --hard HEAD~1
+
+# Salida en JSON (útil para tuberías)
+python3 scripts/git_manager.py --json find | jq '.[].name'
+
+# Validar el entorno
+python3 scripts/git_manager.py validate
+```
+
+El script aplica:
+- Una **lista de subcomandos permitidos** (rechaza `config --global`, `filter-branch`, etc.).
+- Un **control de operaciones destructivas** (el flag `--confirmed` es obligatorio para `reset --hard`, `clean -f`, force push, `branch -D`, etc.).
+- **Tiempos de espera por llamada** (10 s para operaciones rápidas, 60 s para operaciones de red).
+- **Eliminación de credenciales** en URLs remotas antes de mostrarlas.
+
+### Estructura de archivos
+
+```
+github-git-manager/
+├── SKILL.md                    ← Claude lee este archivo
+├── README.md                   ← Estás aquí
+├── LICENSE
+├── scripts/
+│   ├── git_manager.py          ← Helper CLI (lista permitida + control de seguridad)
+│   └── validate_setup.py       ← Verificador de entorno
+├── references/
+│   ├── operations.md           ← Referencia completa de comandos (carga bajo demanda)
+│   └── errors.md               ← Diagnóstico de errores (carga bajo demanda)
+└── evals/
+    └── evals.json              ← Casos de prueba
+```
+
+### Notas de seguridad
+
+- El skill **nunca** muestra claves SSH privadas, tokens ni el contenido de `.git-credentials`.
+- Las URLs con credenciales incorporadas (`https://usuario:token@host/...`) se sanitizan antes de mostrarse.
+- El comando `run` del helper rechaza `git config --global` / `--system` para proteger la configuración global.
+- En la guía de errores se advierte sobre el uso de `safe.directory '*'` y `credential.helper store` (que almacena tokens en texto plano).
+- Cada operación destructiva requiere `SÍ`/`YES` literal — los sinónimos informales ("ok", "claro", "dale") son rechazados.
+- Las confirmaciones son de un solo uso — la siguiente operación destructiva requiere una nueva confirmación.
+- No se realizan llamadas de red más allá de las que hace el propio `git`.
+
+### Resolución de problemas
+
+- **El skill no se activa** → menciona algo relacionado con Git: "git", "github", "commit", "rama", "push", "pull", "repositorio".
+- **No encuentra repositorios** → revisa `ls ~/projects/` o indica una ruta explícita: *"En /ruta/a/mi/repo, muéstrame el estado"*.
+- **Problemas de SSH** → ejecuta `ssh -T git@github.com`, luego `ssh-add ~/.ssh/id_ed25519`.
+- **Python no encontrado** → el skill principal funciona sin Python (Claude llama a `git` directamente por bash). Los scripts son solo una herramienta de conveniencia.
+
+### Contribuir
+
+1. Haz un fork del repositorio
+2. `git switch -c feature/tu-mejora`
+3. Agrega un caso en `evals/evals.json` por cada comportamiento nuevo
+4. Abre un Pull Request
+
+Para agregar una operación nueva:
+1. Agrégala a `references/operations.md`.
+2. Si es destructiva, actualiza `_is_destructive()` en `git_manager.py`.
+3. Si tiene modos de fallo comunes, agrégalos a `references/errors.md`.
+4. Agrega un caso de evaluación en `evals/evals.json`.
+5. Actualiza la tabla de operaciones en `SKILL.md`.
+
+### Licencia
+
+MIT — ver [LICENSE](./LICENSE).
 
 ---
 
@@ -224,215 +439,3 @@ When adding a new operation:
 MIT — see [LICENSE](./LICENSE).
 
 ---
-
-## 🇪🇸 Español
-
-### Qué es
-
-Un Claude Skill que te permite operar repositorios de Git conversando con Claude. Entiende español e inglés, diagnostica errores comunes, y **siempre pide confirmación antes de hacer algo destructivo**.
-
-```
-Tú:     Muéstrame mis proyectos y la rama de cada uno
-Claude: ✅ Encontré 3 repositorios:
-         📁 web-app     → main           (2 archivos modificados)
-         📁 api-server  → develop        (limpio)
-         📁 mobile-app  → feature/login  (1 archivo modificado)
-
-Tú:     Resetea todos mis cambios en web-app
-Claude: ⚠️  OPERACIÓN DESTRUCTIVA
-         Comando: git reset --hard HEAD
-         Efecto:  Descarta permanentemente todos los cambios sin commitear
-         Afecta:  src/auth/login.js, src/routes/index.js
-         Repo:    /home/tu/projects/web-app
-
-         Escribe SÍ (o YES) para confirmar. Cualquier otra cosa cancela.
-```
-
-### Características
-
-- **Lenguaje natural** — funciona en español e inglés, sin sintaxis de comandos.
-- **Confirmación estricta** — operaciones destructivas exigen `SÍ` o `YES` literal. "ok" / "dale" / "claro" *no* sirven.
-- **Lista blanca de subcomandos** — el script rechaza `git config --global`, `filter-branch` y otros que alteran estado global.
-- **Sin fugas de credenciales** — tokens embebidos en URLs remotas se quitan antes de mostrar.
-- **Descubrimiento automático** — busca repos en `~/projects`, `~/repos`, `~/code`, `~/Documents/GitHub`.
-- **Diagnóstico de errores** — explica fallos y propone arreglos concretos.
-- **Conventional commits** — sugiere mensajes estructurados si no provees uno.
-
-### Requisitos
-
-- Cuenta de Claude con Skills habilitado
-- Git 2.0+
-- Python 3.7+ (para los scripts auxiliares)
-- Repositorios clonados localmente
-
-### Instalación
-
-**Opción A — UI de Claude Skills**
-
-1. Abrí Claude → **Settings → Skills → Add Skill**
-2. Subí o apuntá al archivo `SKILL.md`
-3. Claude confirma que el skill está activo
-
-**Opción B — Manual (self-hosted / API)**
-
-```bash
-git clone https://github.com/tu-usuario/github-git-manager-skill.git
-cp -r github-git-manager-skill ~/.claude/skills/github-git-manager
-python3 ~/.claude/skills/github-git-manager/scripts/validate_setup.py
-```
-
-### Setup inicial
-
-```bash
-python3 scripts/validate_setup.py
-```
-
-Salida esperada en un sistema OK:
-```
-✅ Git           git version 2.43.0
-✅ Python        3.11.4
-✅ Git Identity  name: Tu Nombre / email: vos@ejemplo.com
-✅ Ssh Keys      id_ed25519.pub
-✅ Repositories  3 repos found
-
-✅ Everything looks good. Try: "Show me my repositories"
-```
-
-### Ejemplos de uso
-
-**Inspeccionar**
-- "Mostrame mis repositorios"
-- "¿En qué rama estoy en my-app?"
-- "¿Qué archivos cambié?"
-- "Mostrame los últimos 10 commits"
-
-**Ramas**
-- "Creá una rama feature/dark-mode"
-- "Cambiá a main"
-- "Borrá la rama feature/old-login"
-
-**Guardar trabajo**
-- "Hacé commit de mis cambios con el mensaje 'feat: add dark mode'"
-- "Stagea sólo los archivos CSS y commiteá"
-- "¿Cómo quedaría el mensaje de commit?" *(Claude propone uno)*
-- "Stash de lo que tengo en progreso"
-
-**Sincronizar**
-- "Hacé pull de los últimos cambios"
-- "Subí mis commits"
-- "¿Qué commits tengo que no estén en GitHub?"
-
-**Deshacer**
-- "Deshacé el último commit (pero conservá los cambios)"
-- "Descartá mis cambios en login.js"
-- "Reseteá todo" *(pide confirmación)*
-
-**Resolver problemas**
-- "Me da Permission denied (publickey)"
-- "Tengo un merge conflict, ayudame"
-- "Me rechazó el push"
-
-### Modelo de seguridad
-
-| Nivel | Ejemplos | Comportamiento |
-|-------|----------|----------------|
-| Seguro | status, log, diff, fetch, listar ramas | Ejecuta de inmediato |
-| Moderado | switch, pull, crear rama | Avisa si hay cambios sin commitear |
-| Destructivo | reset --hard, force push, clean -fd, branch -D, rm | Exige `SÍ` / `YES` literal |
-| Restringido | push a `main` / `master` | Pide confirmación aunque no sea destructivo local |
-
-Bloque de confirmación:
-```
-⚠️  OPERACIÓN DESTRUCTIVA
-    Comando: git <comando exacto>
-    Efecto:  <qué cambia / qué se pierde>
-    Afecta:  <archivos / commits / ramas en riesgo>
-    Repo:    <ruta absoluta>
-
-    Escribe SÍ (o YES) para confirmar. Cualquier otra cosa cancela.
-```
-
-### CLI del script auxiliar
-
-`git_manager.py` también funciona directo desde la terminal:
-
-```bash
-# Buscar repos (carpetas por defecto)
-python3 scripts/git_manager.py find
-
-# Buscar con carpetas personalizadas
-python3 scripts/git_manager.py find --base-dir /trabajo/clientes ~/personal
-
-# Estado
-python3 scripts/git_manager.py status ~/projects/my-app
-
-# Ejecutar comando seguro
-python3 scripts/git_manager.py run ~/projects/my-app -- log --oneline -10
-
-# Ejecutar comando destructivo (requiere --confirmed)
-python3 scripts/git_manager.py run ~/projects/my-app --confirmed -- reset --hard HEAD~1
-
-# Salida JSON (útil para pipes)
-python3 scripts/git_manager.py --json find | jq '.[].name'
-
-# Validar entorno
-python3 scripts/git_manager.py validate
-```
-
-El script aplica:
-- Una **lista blanca de subcomandos** (rechaza `config --global`, `filter-branch`, etc.).
-- Un **gate de operaciones destructivas** (`--confirmed` obligatorio para `reset --hard`, `clean -f`, force push, `branch -D`, etc.).
-- **Timeouts por llamada** (10 s para operaciones rápidas, 60 s para red).
-- **Saneamiento de credenciales** en URLs remotas antes de mostrarlas.
-
-### Estructura de archivos
-
-```
-github-git-manager/
-├── SKILL.md                    ← Claude lee este
-├── README.md                   ← Estás acá
-├── LICENSE
-├── scripts/
-│   ├── git_manager.py          ← Helper CLI (allowlist + gate de seguridad)
-│   └── validate_setup.py       ← Verificador de entorno
-├── references/
-│   ├── operations.md           ← Referencia de comandos (carga bajo demanda)
-│   └── errors.md               ← Diagnóstico de errores (carga bajo demanda)
-└── evals/
-    └── evals.json              ← Casos de prueba
-```
-
-### Notas de seguridad
-
-- El skill **nunca** muestra claves SSH privadas, tokens, ni el contenido de `.git-credentials`.
-- Las URLs con credenciales (`https://user:token@host/...`) se sanitizan antes de mostrarse.
-- El comando `run` del helper rechaza `git config --global` / `--system` para proteger configuración global.
-- En la guía de errores se advierte contra `safe.directory '*'` y `credential.helper store` (que guarda tokens en texto plano).
-- Cada operación destructiva exige `SÍ`/`YES` literal — sinónimos suaves ("ok", "dale", "claro") se rechazan.
-- Las confirmaciones son de un solo uso — la próxima operación destructiva necesita una nueva confirmación.
-- Ninguna llamada de red más allá de las que hace el propio `git`.
-
-### Resolución de problemas
-
-- **El skill no se activa** → mencioná algo relacionado a Git: "git", "github", "commit", "rama", "push", "pull", "repo".
-- **No encuentra repos** → revisá `ls ~/projects/` o pasá una ruta explícita: *"En /ruta/a/mi/repo, mostrame el estado"*.
-- **Problemas de SSH** → `ssh -T git@github.com`, después `ssh-add ~/.ssh/id_ed25519`.
-- **Python no encontrado** → el skill core funciona sin Python (Claude llama a `git` por bash). Los scripts son sólo conveniencia.
-
-### Contribuir
-
-1. Forkeá el repo
-2. `git switch -c feature/tu-mejora`
-3. Agregá un caso a `evals/evals.json` por cada comportamiento nuevo
-4. Abrí un PR
-
-Para agregar una operación nueva:
-1. Agregala a `references/operations.md`.
-2. Si es destructiva, actualizá `_is_destructive()` en `git_manager.py`.
-3. Si tiene errores comunes, agregalos a `references/errors.md`.
-4. Agregá un eval en `evals/evals.json`.
-5. Actualizá la tabla de operaciones de `SKILL.md`.
-
-### Licencia
-
-MIT — ver [LICENSE](./LICENSE).
